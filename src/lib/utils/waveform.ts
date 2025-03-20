@@ -152,7 +152,7 @@ export const generateClockAngles = (
     angle += angularVelocity;
 
     // 計算された角度をベースに
-    let finalAngle = angle;
+    const finalAngle = angle;
 
     // 角度を配列に格納
     angles[i] = finalAngle % 360; // 0-359度の範囲に正規化
