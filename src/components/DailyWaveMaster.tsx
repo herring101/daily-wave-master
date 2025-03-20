@@ -10,7 +10,7 @@ import SuccessAnimation from '@/components/animations/SuccessAnimation';
 import FailureAnimation from '@/components/animations/FailureAnimation';
 import { ActionType, ActionTypes, BeatInterval, BeatIntervals, ActionColors, ActionLabels } from '@/lib/constants/actions';
 import { getTodaysSeed } from '@/lib/utils/seed';
-import { generateWaveform, calculateWaveformMatch, generateTargetWaveform, TargetData } from '@/lib/utils/waveform';
+import { generateWaveform, calculateWaveformMatch, generateTargetWaveform, TargetData, generateClockAngles } from '@/lib/utils/waveform';
 
 // 波形コンポーネントのCSSアニメーション用スタイル
 const wigglyStyle = `
@@ -30,6 +30,8 @@ const DailyWaveMaster: React.FC = () => {
   const [beatInterval, setBeatInterval] = useState<BeatInterval>(BeatIntervals.TWO);
   const [inputs, setInputs] = useState<ActionType[][]>([]);
   const [generatedWaveform, setGeneratedWaveform] = useState<number[]>([]);
+  const [generatedAngles, setGeneratedAngles] = useState<number[]>([]);
+  const [generatedFrameActions, setGeneratedFrameActions] = useState<ActionType[][]>([]);
   const [matchPercentage, setMatchPercentage] = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -108,6 +110,11 @@ const DailyWaveMaster: React.FC = () => {
     const waveform = generateWaveform(inputs, beatInterval);
     setGeneratedWaveform(waveform);
     
+    // 時計の針の角度データを生成
+    const { angles, frameActions } = generateClockAngles(inputs, beatInterval);
+    setGeneratedAngles(angles);
+    setGeneratedFrameActions(frameActions);
+    
     // アニメーション状態をリセット
     setIsAnimating(true);
     setNeedleAngle(0);
@@ -123,11 +130,13 @@ const DailyWaveMaster: React.FC = () => {
     setShowFailureAnimation(false);
     
     // 波形アニメーションを明示的に開始
-    if (waveVisualizerRef.current) {
-      setTimeout(() => {
-        waveVisualizerRef.current?.startAnimation();
-      }, 50);
-    }
+    setTimeout(() => {
+      // 波形アニメーションを開始
+      waveVisualizerRef.current?.startAnimation();
+      // 時計のアニメーションも開始
+      clockRef.current?.startAnimation();
+      // 波形アニメーションの完了時に判定が行われる
+    }, 50);
   };
   
   // アニメーション進行ハンドラ
@@ -418,6 +427,10 @@ const DailyWaveMaster: React.FC = () => {
                   ref={clockRef}
                   angle={needleAngle} 
                   actions={currentActions}
+                  angles={generatedAngles}
+                  frameActions={generatedFrameActions}
+                  animationSpeed={1}
+                  onAnimationComplete={handleAnimationComplete}
                 />
               </div>
             </div>

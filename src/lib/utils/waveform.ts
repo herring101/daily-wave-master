@@ -87,6 +87,80 @@ export const generateWaveform = (
   return waveform;
 };
 
+// 時計の針の角度データを生成する関数
+export const generateClockAngles = (
+  inputs: ActionArray[],
+  beatInterval: BeatInterval,
+  resolution = 200
+) => {
+  // 1小節の拍数
+  const totalBeats = 4;
+
+  // 角度データの配列
+  const angles = new Array(resolution).fill(0);
+  // 各フレームでのアクションを記録
+  const frameActions = new Array(resolution)
+    .fill(null)
+    .map(() => [ActionTypes.NONE] as ActionType[]);
+
+  // 初期角度と角速度
+  let angle = 0;
+  const baseAngularVelocity = -360 / resolution; // 度数法で計算（マイナスで反時計回り）
+
+  // 前回の入力インデックス
+  let lastInputIndex = -1;
+
+  // 各時点での角度を計算
+  for (let i = 0; i < resolution; i++) {
+    // 現在の拍位置（0～4）
+    const currentBeat = (i / resolution) * totalBeats;
+
+    // 入力配列のインデックス
+    const inputIndex = Math.min(
+      Math.floor(currentBeat / beatInterval),
+      inputs.length - 1
+    );
+
+    // 現在の操作（複数可能）
+    const currentActions = inputs[inputIndex] || [ActionTypes.NONE];
+    frameActions[i] = [...currentActions];
+
+    // 区間が変わった時、前の区間の影響をリセット
+    if (inputIndex !== lastInputIndex) {
+      lastInputIndex = inputIndex;
+    }
+
+    // 基本の角速度
+    let angularVelocity = baseAngularVelocity;
+
+    // 1. ストップ操作
+    if (currentActions.includes(ActionTypes.STOP)) {
+      angularVelocity = 0; // 停止
+    } else {
+      // 2. リバース操作
+      if (currentActions.includes(ActionTypes.REVERSE)) {
+        angularVelocity = -baseAngularVelocity; // 逆方向
+      }
+
+      // 3. ダブル操作
+      if (currentActions.includes(ActionTypes.DOUBLE)) {
+        angularVelocity *= 2; // 倍速
+      }
+    }
+
+    // 角度を更新
+    angle += angularVelocity;
+
+    // 計算された角度をベースに
+    let finalAngle = angle;
+
+    // 角度を配列に格納
+    angles[i] = finalAngle % 360; // 0-359度の範囲に正規化
+  }
+
+  return { angles, frameActions };
+};
+
 // 波形の一致度を計算する関数
 export const calculateWaveformMatch = (wave1: number[], wave2: number[]) => {
   if (wave1.length !== wave2.length) return 0;
